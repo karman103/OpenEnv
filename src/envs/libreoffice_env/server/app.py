@@ -25,9 +25,13 @@ from core.env_server.http_server import create_app
 
 from ..models import LibreOfficeAction, LibreOfficeObservation
 from .libreoffice_environment import LibreOfficeEnvironment
+import ConfigParser
 
+configParser = ConfigParser.RawConfigParser()   
+base_config_file_path,goal_config_file_path = r'BASE_FILE',r'GOAL_FILE'
+base_file, goal_file=configParser.read(base_config_file_path),configParser.read(goal_config_file_path)
 # Create the environment instance
-env = LibreOfficeEnvironment()
+env = LibreOfficeEnvironment(base_excel=base_file, goal_excel=goal_file)
 
 # Create the app with web interface and README integration
 app = create_app(env, LibreOfficeAction, LibreOfficeObservation, env_name="libreoffice_env")

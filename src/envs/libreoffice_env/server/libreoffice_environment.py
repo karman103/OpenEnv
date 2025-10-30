@@ -53,8 +53,8 @@ class LibreOfficeEnvironment(Environment):
         >>> print(obs.data)  # "Hello World"
     """
 
-    def __init__(self):
-        """Initialize the LibreOffice environment."""
+    def __init__(self, base_excel: Optional[str] = None, goal_excel: Optional[str] = None):
+        """Initialize LibreOffice environment with optional base and goal Excel files."""
         self._state = State(episode_id=str(uuid.uuid4()), step_count=0)
         self._reset_count = 0
         self._libreoffice_context = None
@@ -63,6 +63,11 @@ class LibreOfficeEnvironment(Environment):
         self._file_path = None
         self._temp_dir = None
         self._initialized = False
+
+        # New
+        self._base_excel = base_excel
+        self._goal_excel = goal_excel
+
 
     def _initialize_libreoffice(self) -> bool:
         """Initialize LibreOffice connection (robust socket-based)."""
@@ -125,6 +130,14 @@ class LibreOfficeEnvironment(Environment):
 
             self._initialized = True
             print("✅ LibreOffice environment initialized successfully.")
+            if self._base_excel and os.path.exists(self._base_excel):
+                print(f"📂 Loading base Excel file: {self._base_excel}")
+                open_obs = self._open_file({"file_path": self._base_excel})
+                if not open_obs.success:
+                    print(f"⚠️ Warning: Failed to open base Excel file: {open_obs.error_message}")
+            else:
+                print("ℹ️ No base Excel file provided, starting with a new sheet.")
+
             return True
 
         except Exception as e:
@@ -855,10 +868,23 @@ class LibreOfficeEnvironment(Environment):
                         print("✅ LibreOffice desktop terminated.")
                 except Exception as e:
                     print(f"⚠️ Error terminating LibreOffice: {e}")
+            # Before cleanup, save the document if a goal file path was provided
+            if self._goal_excel:
+                print(f"💾 Saving final Excel output to: {self._goal_excel}")
+                try:
+                    save_obs = self._save_file({"file_path": self._goal_excel})
+                    if save_obs.success:
+                        print("✅ Final Excel file saved successfully.")
+                    else:
+                        print(f"⚠️ Could not save goal Excel file: {save_obs.error_message}")
+                except Exception as e:
+                    print(f"⚠️ Error during goal Excel save: {e}")
+
 
             # Clean up temp files and state
             self._cleanup_libreoffice()
             self._initialized = False
+            
 
             return LibreOfficeObservation(
                 result="LibreOffice environment closed successfully.",
